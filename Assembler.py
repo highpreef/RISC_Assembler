@@ -67,24 +67,24 @@ main                This procedure is called at the start
 ##########################################################
 main:
 lw A, 00 # load default value of MouseScroll into A
-sw A, C0 # Update upper 8 LEDs with MouseScroll
+sw A, C1 # Update lower 8 LEDs with MouseScroll
 lw A, 01 # Load default value of MouseX into A
 sw A, D0 # Update 7seg with MouseX
 lw A, 02 # Load default value of MouseY into A
 sw A, D1 # Update 7seg with MouseY
 lw A, 03 # Load default value of MouseStatus into A
-sw A, C1 # Update lower 8 LEDs with MouseStatus
+sw A, C0 # Update upper 8 LEDs with MouseStatus
 idle
 
 Mouse_Interrupt:
 lw A, A3 # load MouseScroll into A
-sw A, C0 # Update upper 8 LEDs with MouseScroll
+sw A, C1 # Update lower 8 LEDs with MouseScroll
 lw A, A1 # Load MouseX into A
 sw A, D0 # Update 7seg with MouseX
 lw A, A2 # Load MouseY into A
 sw A, D1 # Update 7seg with MouseY
 lw A, A0 # Load MouseStatus into A
-sw A, C1 # Update lower 8 LEDs with MouseStatus
+sw A, C0 # Update upper 8 LEDs with MouseStatus
 idle
 
 Timer_Interrupt:
