@@ -47,6 +47,7 @@ idle                    put cpu in idle state to wait for interrupt
 jal label               unconditional jump to label, saves current PC
 ra                      return to caller procedure
 drf rs                  rs = Mem[rs]
+li rs immediate         rs = immediate (immediate is in base 10)      
 
 ## Gonna add mov, li, nand, and, or and xor instructions
 ##############################################################################
@@ -115,16 +116,17 @@ class Instruction:
     multiple arguments
     """
 
-    def __init__(self, name, rs=None, rt=None, rd=None, mem_addr=None, label=None):
+    def __init__(self, name, rs=None, rt=None, rd=None, mem_addr=None, label=None, immediate=None):
         self.name = name
         self.rs = rs
         self.rt = rt
         self.rd = rd
         self.mem_addr = mem_addr
         self.label = label
+        self.immediate = immediate
 
     def __len__(self):
-        if self.name in ["lw", "sw", "beq", "bgt", "blt", "goto", "jal"]:
+        if self.name in ["lw", "sw", "beq", "bgt", "blt", "goto", "jal", "li"]:
             return 2
         else:
             return 1
@@ -217,45 +219,56 @@ def parse_assembly(file, debug=False):
 
                 # Detect start of new procedure on encountering a label
                 if arg not in ["lw", "sw", "add", "sub", "mul", "sll", "srl", "inc", "dec",
-                               "beq", "bgt", "blt", "goto", "idle", "jal", "ra", "drf"] and arg[-1] == ":":
+                               "beq", "bgt", "blt", "goto", "idle", "jal", "ra", "drf", "li"] and arg[-1] == ":":
                     curr_procedure = arg[:-1]
                     procedures[curr_procedure] = Procedure(curr_procedure)
 
                 # Detect load/store instructions
                 elif arg in ["lw", "sw"]:
-                    instruction = Instruction(name=arg, rs=line[1][:-1], rt=None, rd=None, mem_addr=line[2], label=None)
+                    instruction = Instruction(name=arg, rs=line[1][:-1], rt=None, rd=None, mem_addr=line[2], label=None,
+                                              immediate=None)
                     procedures[curr_procedure].instructions.append(instruction)
 
                 # Detect basic arithmetic instructions
                 elif arg in ["add", "sub", "mul"]:
                     instruction = Instruction(name=arg, rs=line[2][:-1], rt=line[3], rd=line[1][:-1], mem_addr=None,
-                                              label=None)
+                                              label=None, immediate=None)
                     procedures[curr_procedure].instructions.append(instruction)
 
                 # Detect complex arithmetic instructions
                 elif arg in ["sll", "srl", "inc", "dec"]:
-                    instruction = Instruction(name=arg, rs=line[2], rt=None, rd=line[1][:-1], mem_addr=None, label=None)
+                    instruction = Instruction(name=arg, rs=line[2], rt=None, rd=line[1][:-1], mem_addr=None, label=None,
+                                              immediate=None)
                     procedures[curr_procedure].instructions.append(instruction)
 
                 # Detect branch instructions
                 elif arg in ["beq", "bgt", "blt"]:
                     instruction = Instruction(name=arg, rs=line[1][:-1], rt=line[2][:-1], rd=None, mem_addr=None,
-                                              label=line[3])
+                                              label=line[3], immediate=None)
                     procedures[curr_procedure].instructions.append(instruction)
 
                 # Detect no argument instructions
                 elif arg in ["ra", "idle"]:
-                    instruction = Instruction(name=arg, rs=None, rt=None, rd=None, mem_addr=None, label=None)
+                    instruction = Instruction(name=arg, rs=None, rt=None, rd=None, mem_addr=None, label=None,
+                                              immediate=None)
                     procedures[curr_procedure].instructions.append(instruction)
 
                 # Detect single register argument instructions
                 elif arg in ["drf"]:
-                    instruction = Instruction(name=arg, rs=line[1], rt=None, rd=None, mem_addr=None, label=None)
+                    instruction = Instruction(name=arg, rs=line[1], rt=None, rd=None, mem_addr=None, label=None,
+                                              immediate=None)
+                    procedures[curr_procedure].instructions.append(instruction)
+
+                # Detect instructions with immediates
+                elif arg in ["li"]:
+                    instruction = Instruction(name=arg, rs=line[1][:-1], rt=None, rd=None, mem_addr=None, label=None,
+                                              immediate=line[2])
                     procedures[curr_procedure].instructions.append(instruction)
 
                 # Detect unconditional jump instructions
                 elif arg in ["jal", "goto"]:
-                    instruction = Instruction(name=arg, rs=None, rt=None, rd=None, mem_addr=None, label=line[1])
+                    instruction = Instruction(name=arg, rs=None, rt=None, rd=None, mem_addr=None, label=line[1],
+                                              immediate=None)
                     procedures[curr_procedure].instructions.append(instruction)
 
                 # default
@@ -295,23 +308,23 @@ def decodeInstruction(instruction):
     """
     name = instruction.name
     if name == "lw":
-        return "%02x" % (ord(instruction.rs) - 65)
+        return "%02X" % (ord(instruction.rs) - 65)
     elif name == "sw":
-        return "%02x" % (ord(instruction.rs) - 63)
+        return "%02X" % (ord(instruction.rs) - 63)
     elif name == "add":
-        return '0' + "%01x" % (ord(instruction.rd) - 61)
+        return '0' + "%01X" % (ord(instruction.rd) - 61)
     elif name == "sub":
-        return '1' + "%01x" % (ord(instruction.rd) - 61)
+        return '1' + "%01X" % (ord(instruction.rd) - 61)
     elif name == "mul":
-        return '2' + "%01x" % (ord(instruction.rd) - 61)
+        return '2' + "%01X" % (ord(instruction.rd) - 61)
     elif name == "sll":
-        return '3' + "%01x" % (ord(instruction.rd) - 61)
+        return '3' + "%01X" % (ord(instruction.rd) - 61)
     elif name == "srl":
-        return '4' + "%01x" % (ord(instruction.rd) - 61)
+        return '4' + "%01X" % (ord(instruction.rd) - 61)
     elif name == "inc":
-        return "%01x" % (ord(instruction.rd) - 60) + "%01x" % (ord(instruction.rd) - 61)
+        return "%01X" % (ord(instruction.rd) - 60) + "%01X" % (ord(instruction.rd) - 61)
     elif name == "dec":
-        return "%01x" % (ord(instruction.rd) - 61) + "%01x" % (ord(instruction.rd) - 61)
+        return "%01X" % (ord(instruction.rd) - 61) + "%01X" % (ord(instruction.rd) - 61)
     elif name == "beq":
         return "96"
     elif name == "bgt":
@@ -328,6 +341,8 @@ def decodeInstruction(instruction):
         return "0A"
     elif name == "drf":
         return '0' + str(chr(ord(instruction.rs) + 1))
+    elif name == "li":
+        return "%02X" % (ord(instruction.rs) - 52)
     else:
         raise Exception("Instruction not implemented yet!")
 
@@ -361,7 +376,7 @@ def map(procedures, rom_size=256, debug=False):
     procedure_size = len(procedures["Mouse_Interrupt"])
     hasEnoughMemory(pc + procedure_size, rom_size)
     # map address of Mouse Interrupt routine to service handler location
-    rom[0xFF] = "%02x" % pc
+    rom[0xFF] = "%02X" % pc
     # map current PC to the Mouse Interrupt Routine
     procedures["Mouse_Interrupt"].addr_in_ROM = pc
     pc += procedure_size
@@ -370,7 +385,7 @@ def map(procedures, rom_size=256, debug=False):
     procedure_size = len(procedures["Timer_Interrupt"])
     hasEnoughMemory(pc + procedure_size, rom_size)
     # map address of Timer Interrupt routine to service handler location
-    rom[0xFE] = "%02x" % pc
+    rom[0xFE] = "%02X" % pc
     # map current PC to the Timer Interrupt Routine
     procedures["Timer_Interrupt"].addr_in_ROM = pc
     pc += procedure_size
@@ -408,14 +423,25 @@ def map(procedures, rom_size=256, debug=False):
                 rom[procedure.addr_in_ROM + offset + 1] = instruction.mem_addr
                 offset += 2
 
-            # Decode and map branch and other 2 byte instructions
+            # Decode and map branch and jump instructions
             elif instruction.name in ["beq", "bgt", "blt", "goto", "jal"]:
                 if instruction.label not in procedures.keys():
                     print("Syntax Error in Label(s)!")
                     sys.exit(2)
                 hex_code = decodeInstruction(instruction)
                 rom[procedure.addr_in_ROM + offset] = hex_code
-                rom[procedure.addr_in_ROM + offset + 1] = "%02x" % procedures[instruction.label].addr_in_ROM
+                rom[procedure.addr_in_ROM + offset + 1] = "%02X" % procedures[instruction.label].addr_in_ROM
+                offset += 2
+
+            # Decode and map instructions with immediate values
+            elif instruction.name in ["li"]:
+                if len(instruction.immediate) > 2:
+                    print("Overflow detected from immediate! Only 8-bit hex immediates are allowed.")
+                    sys.exit(2)
+                hex_code = decodeInstruction(instruction)
+                rom[procedure.addr_in_ROM + offset] = hex_code
+                rom[procedure.addr_in_ROM + offset + 1] = instruction.immediate if len(
+                    instruction.immediate) == 2 else "0" + instruction.immediate
                 offset += 2
 
             # Decode and map single byte instructions
