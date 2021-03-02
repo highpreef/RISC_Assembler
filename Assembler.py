@@ -9,7 +9,7 @@ import sys
 Author: David Jorge
 Course: Digital Systems Laboratory
 
-This is a CLI Assembler for the ISA used in Digital Systems Laboratory.
+This is a CLI Assembler for the RISC ISA used in Digital Systems Laboratory.
 It takes in an input file with Assembly Instructions and assembles it down to machine code (in hex).
 
 Size of ROM: 256 Bytes
