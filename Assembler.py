@@ -115,7 +115,7 @@ Opts:
 
 class Instruction:
     """
-    is class represents a single instruction. An instruction can have
+    This class represents a single instruction. An instruction can have
     multiple arguments
     """
 
