@@ -51,7 +51,7 @@ idle                    put cpu in idle state to wait for interrupt
 jal label               unconditional jump to label, saves current PC
 ra                      return to caller procedure
 drf rs                  rs = Mem[rs]
-li rs immediate         rs = immediate (immediate is in base 10)      
+li rs immediate         rs = immediate (immediate is in hex)      
 
 ##############################################################################
 
