@@ -35,6 +35,10 @@ sw rs, mem_addr         Mem[mem_addr] = rs
 add rd, rs, rt          rd = rs + rt
 sub rd, rs, rt          rd = rs - rt
 mul rd, rs, rt          rd = rs * rt (if result is larger than 8 bits truncate)
+and rd, rs, rt          rd = rs & rt
+nand rd, rs, rt         rd = !(rs & rt)
+or rd, rs, rt           rd = rs | rt
+xor rd, rs, rt          rd = rs ^ rt
 sll rd, rs              rd = rs << 1
 srl rd, rs              rd = rs >> 1
 inc rd, rs              rd = rs + 1
@@ -49,7 +53,6 @@ ra                      return to caller procedure
 drf rs                  rs = Mem[rs]
 li rs immediate         rs = immediate (immediate is in base 10)      
 
-## Gonna add mov, li, nand, and, or and xor instructions
 ##############################################################################
 
 
@@ -218,7 +221,7 @@ def parse_assembly(file, debug=False):
                     print("Parsing line: {}".format(line))
 
                 # Detect start of new procedure on encountering a label
-                if arg not in ["lw", "sw", "add", "sub", "mul", "sll", "srl", "inc", "dec",
+                if arg not in ["lw", "sw", "add", "sub", "mul", "and", "nand", "or", "xor", "sll", "srl", "inc", "dec",
                                "beq", "bgt", "blt", "goto", "idle", "jal", "ra", "drf", "li"] and arg[-1] == ":":
                     curr_procedure = arg[:-1]
                     procedures[curr_procedure] = Procedure(curr_procedure)
@@ -230,7 +233,7 @@ def parse_assembly(file, debug=False):
                     procedures[curr_procedure].instructions.append(instruction)
 
                 # Detect basic arithmetic instructions
-                elif arg in ["add", "sub", "mul"]:
+                elif arg in ["add", "sub", "mul", "and", "nand", "or", "xor"]:
                     instruction = Instruction(name=arg, rs=line[2][:-1], rt=line[3], rd=line[1][:-1], mem_addr=None,
                                               label=None, immediate=None)
                     procedures[curr_procedure].instructions.append(instruction)
@@ -317,6 +320,14 @@ def decodeInstruction(instruction):
         return '1' + "%01X" % (ord(instruction.rd) - 61)
     elif name == "mul":
         return '2' + "%01X" % (ord(instruction.rd) - 61)
+    elif name == "and":
+        return 'C' + "%01X" % (ord(instruction.rd) - 61)
+    elif name == "nand":
+        return 'D' + "%01X" % (ord(instruction.rd) - 61)
+    elif name == "or":
+        return 'E' + "%01X" % (ord(instruction.rd) - 61)
+    elif name == "xor":
+        return 'F' + "%01X" % (ord(instruction.rd) - 61)
     elif name == "sll":
         return '3' + "%01X" % (ord(instruction.rd) - 61)
     elif name == "srl":

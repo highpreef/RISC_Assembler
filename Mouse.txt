@@ -21,5 +21,4 @@ sw A, C0 # Update upper 8 LEDs with MouseStatus
 idle
 
 Timer_Interrupt:
-goto Mouse_Interrupt
 idle
