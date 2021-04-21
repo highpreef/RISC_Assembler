@@ -1,0 +1,183 @@
+main:
+lw A, 00 # load default value of MouseScroll into A
+sw A, C1 # Update lower 8 LEDs with MouseScroll
+lw A, 01 # Load default value of MouseX into A
+sw A, D0 # Update 7seg with MouseX
+lw A, 02 # Load default value of MouseY into A
+sw A, D1 # Update 7seg with MouseY
+lw A, 03 # Load default value of MouseStatus into A
+sw A, C0 # Update upper 8 LEDs with MouseStatus
+idle
+
+Mouse_Interrupt:
+lw A, 13 # Get default colour for Pointer
+sw A, B3 # Set current Pointer colour
+lw A, 14 # Get default colour for Background
+sw A, B4 # Set current Background colour
+lw A, A3 # load MouseScroll into A
+sw A, C1 # Update lower 8 LEDs with MouseScroll
+lw A, A1 # Load MouseX into A
+sw A, D0 # Update 7seg with MouseX
+lw A, A2 # Load MouseY into A
+sw A, D1 # Update 7seg with MouseY
+lw A, A0 # Load MouseStatus into A
+sw A, C0 # Update upper 8 LEDs with MouseStatus
+li B, 00
+sw B, B2 # Set Colour to Background
+goto VGA_Loop
+
+VGA_Loop:
+lw A, 16 # get Y coordinate
+sw A, B1 # Save Y coordinate to VGA
+li B, 78
+blt A, B, Inner_Loop # Branch if Y coordinate is below 0x78
+li A, 00
+sw A, 16 # Set Y coordinate to 0
+goto End # End VGA Loop
+
+Inner_Loop:
+lw A, 15 # Get X coordinate
+sw A, B0 # Save X coordinate to VGA
+jal Check_In_Boundaries # Function Call to Check if in Boundaries
+lw A, 15 # Get X coordinate
+li B, A0
+blt A, B, Increment_X # Branch if X coordinate is below 0xA0
+li A, 00
+sw A, 15 # Set X coordinate to 0
+lw A, 16 # Get Y coordinate
+inc A, A # Increment Y coordinate
+sw A, 16
+goto VGA_Loop
+
+Increment_X:
+inc A, A # Increment X coordinate
+sw A, 15
+goto Inner_Loop
+
+Check_In_Boundaries:
+li B, 32
+beq A, B, Boundary # Check if X coordinate is 50
+li B, 6E
+beq A, B, Boundary # Check if X coordinate is 110
+lw A, 16 # get Y coordinate
+li B, 28
+beq A, B, Boundary # Check if Y coordinate is 40
+li B, 50
+beq A, B, Boundary # Check if Y coordinate is 80
+ra # Return from function call
+
+Boundary:
+li B, 01
+sw B, B2 # Set colour to Pointer
+ra # Return from function call
+
+End:
+lw A, A1 # Load MouseX into A
+sw A, B0 # Save MouseX to VGA
+lw B, A2 # Load MouseY into B
+li A, 77
+sub A, A, B # Invert MouseY value (y-axis is inverted for VGA)
+sw A, B1 # Save MouseY to VGA
+li A, 01
+sw A, B2 # Display current mouse coordinates on VGA
+idle
+
+Timer_Interrupt:
+lw A, A0 # Load MouseStatus into A
+li B, 01
+and A, A, B # Get current left button value
+beq A, B, Left_Click # Branch if left button is pressed
+goto X_Coord # Else proceed
+
+Left_Click:
+lw A, C2 # Load lower switches
+li B, 01
+and A, A, B # Get value of lowermost switch
+beq A, B, Background # Change Background colour if switch is on
+goto Pointer # Else change Pointer colour
+
+Background:
+lw A, A3 # load MouseScroll into A
+sw A, 14 # Save value into default Background colour location
+goto X_Coord
+
+Pointer:
+lw A, A3 # load MouseScroll into A
+sw A, 13 # Save value into default Pointer colour location
+
+X_Coord:
+lw A, A1 # Load MouseX coordinate into A
+li B, 32 # Load reg B with 32 (50 in decimal)
+blt A, B, Under_50 # Branch if MouseX is below 50
+li B, 6E # Load reg B with 6E (110 in decimal)
+blt A, B, Between_50_110 # Branch if MouseX is between 50 and 110
+goto Between_110_160 # Else jump if MouseX is between 110 and 160
+
+Under_50:
+lw A, A2 # Load MouseY into A
+li B, 28 # Load reg B with 28 (40 in decimal)
+blt A, B, BackwardLeft # Load BackwardLeft Dir
+li B, 50 # Load reg B with 50 (80 in decimal)
+blt A, B, Left # Load Left Dir
+goto ForwardLeft # else load ForwardLeft Dir
+
+Between_50_110:
+lw A, A2 # Load MouseY into A
+li B, 28 # Load reg B with 28 (40 in decimal)
+blt A, B, Backward # Load Backward Dir
+li B, 50 # Load reg B with 50 (80 in decimal)
+blt A, B, IDLE # Load IDLE Dir
+goto Forward # else load Forward Dir
+
+Between_110_160:
+lw A, A2 # Load MouseY into A
+li B, 28 # Load reg B with 28 (40 in decimal)
+blt A, B, BackwardRight # Load BackwardRight Dir
+li B, 50 # Load reg B with 50 (80 in decimal)
+blt A, B, Right # Load Right Dir
+goto ForwardRight # else load ForwardRight Dir
+
+BackwardLeft:
+li A, 06 # Load Direction instruction
+sw A, 90 # Update IR with instruction
+idle
+
+Left:
+li A, 04 # Load Direction instruction
+sw A, 90 # Update IR with instruction
+idle
+
+ForwardLeft:
+li A, 05 # Load Direction instruction
+sw A, 90 # Update IR with instruction
+idle
+
+Backward:
+li A, 02 # Load Direction instruction
+sw A, 90 # Update IR with instruction
+idle
+
+IDLE:
+li A, 00 # Load Direction instruction
+sw A, 90 # Update IR with instruction
+idle
+
+Forward:
+li A, 01 # Load Direction instruction
+sw A, 90 # Update IR with instruction
+idle
+
+BackwardRight:
+li A, 0A # Load Direction instruction
+sw A, 90 # Update IR with instruction
+idle
+
+Right:
+li A, 08 # Load Direction instruction
+sw A, 90 # Update IR with instruction
+idle
+
+ForwardRight:
+li A, 09 # Load Direction instruction
+sw A, 90 # Update IR with instruction
+idle
